@@ -50,43 +50,30 @@ public class NetworkStatsPlugin implements MethodCallHandler {
     NetworkStatsManager networkStatsManager = (NetworkStatsManager) activity.getApplicationContext().getSystemService(Context.NETWORK_STATS_SERVICE);
     PackageManager pm = activity.getApplicationContext().getPackageManager();
     switch (call.method) {
-        case "getAllRxBytesMobile": {
-            NetworkStats.Bucket bucket;
-            try {
-                bucket = networkStatsManager.querySummaryForDevice(ConnectivityManager.TYPE_MOBILE,
-                        manager.getSubscriberId(),
-                        0,
-                        System.currentTimeMillis());
-                result.success(bucket.getRxBytes());
-            } catch (RemoteException e) {
-                result.error("1", "Error getting Gsf", "");
+        case "isUsagePermission": {
+            String packageName = activity.getApplicationContext().getPackageName();
+            AppOpsManager appOps = (AppOpsManager) activity.getApplicationContext().getSystemService(Context.APP_OPS_SERVICE);
+            int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), packageName);
+            if (mode == AppOpsManager.MODE_ALLOWED) {
+                result.success(true); 
             }
-            break;
+            result.success(false);
+        }
+        case "grantUsagePermission": {
+            String packageName = activity.getApplicationContext().getPackageName();
+            AppOpsManager appOps = (AppOpsManager) activity.getApplicationContext().getSystemService(Context.APP_OPS_SERVICE);
+            int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), packageName);
+            if (mode != AppOpsManager.MODE_ALLOWED) {
+                Intent launchIntent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+                if (launchIntent != null) {
+                    launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                }
+                activity.getApplicationContext().startActivity(launchIntent); 
+            }
         }
         case "getAllRxBytesWifi": {
             NetworkStats.Bucket bucket;
             try {
-                // PackageManager pm = activity.getApplicationContext().getPackageManager();
-                // // AppOpsManager appOps = (AppOpsManager) activity.getApplicationContext().getSystemService(Context.APP_OPS_SERVICE);
-                // // Boolean mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), pm.checkPermission);
-                // if(pm.checkPermission(AppOpsManager.OPSTR_GET_USAGE_STATS) != AppOpsManager.MODE_ALLOWED) {
-                //     Intent launchIntent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-                //     if (launchIntent != null) {
-                //         launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                //     }
-                //     activity.getApplicationContext().startActivity(launchIntent);    
-                // }
-
-                // AppOpsManager appOps = (AppOpsManager) activity.getApplicationContext().getSystemService(Context.APP_OPS_SERVICE);
-                // int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), "");
-                // if (mode != AppOpsManager.MODE_ALLOWED) {
-                    // Intent launchIntent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-                    // if (launchIntent != null) {
-                    //     launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    // }
-                    // activity.getApplicationContext().startActivity(launchIntent);
-                // }
-                
                 bucket = networkStatsManager.querySummaryForDevice(ConnectivityManager.TYPE_WIFI,
                         "",
                         0,
@@ -161,6 +148,86 @@ public class NetworkStatsPlugin implements MethodCallHandler {
                 result.success(txBytes);
             } catch (Exception  e) {
                 result.error("1", "Error getting getAllTxBytesWifi", "");
+            }
+            break;
+        }
+        case "getAllRxBytesMobile": {
+            NetworkStats.Bucket bucket;
+            try {
+                bucket = networkStatsManager.querySummaryForDevice(ConnectivityManager.TYPE_MOBILE,
+                        manager.getSubscriberId(),
+                        0,
+                        System.currentTimeMillis());
+                result.success(bucket.getRxBytes());
+            } catch (RemoteException e) {
+                result.error("1", "Error getAllRxBytesMobile", "");
+            }
+            break;
+        }
+        case "getAllTxBytesMobile": {
+            NetworkStats.Bucket bucket;
+            try {
+                bucket = networkStatsManager.querySummaryForDevice(ConnectivityManager.TYPE_MOBILE,
+                        manager.getSubscriberId(),
+                        0,
+                        System.currentTimeMillis());
+                result.success(bucket.getTxBytes());
+            } catch (RemoteException e) {
+                result.error("1", "Error getAllTxBytesMobile", "");
+            }
+            break;
+        }
+        case "getPackageRxBytesMobile": {
+            NetworkStats networkStats = null;
+            try {
+                int uid = -1;
+                String packageName = activity.getApplicationContext().getPackageName();
+                PackageInfo packageInfo = pm.getPackageInfo(packageName, PackageManager.GET_META_DATA);
+                uid = packageInfo.applicationInfo.uid;
+                networkStats = networkStatsManager.queryDetailsForUid(
+                        ConnectivityManager.TYPE_MOBILE,
+                        manager.getSubscriberId(),
+                        0,
+                        System.currentTimeMillis(),
+                        uid);
+                long rxBytes = 0L;
+                NetworkStats.Bucket bucket = new NetworkStats.Bucket();
+                while (networkStats.hasNextBucket()) {
+                    networkStats.getNextBucket(bucket);
+                    rxBytes += bucket.getRxBytes();
+                }
+                networkStats.close();
+
+                result.success(rxBytes);
+            } catch (Exception e) {
+                result.error("1", "Error getting getPackageRxBytesMobile", "");
+            }
+            break;
+        }
+        case "getPackageTxBytesMobile": {
+            NetworkStats networkStats = null;
+            try {
+                int uid = -1;
+                String packageName = activity.getApplicationContext().getPackageName();
+                PackageInfo packageInfo = pm.getPackageInfo(packageName, PackageManager.GET_META_DATA);
+                uid = packageInfo.applicationInfo.uid;
+                networkStats = networkStatsManager.queryDetailsForUid(
+                        ConnectivityManager.TYPE_MOBILE,
+                        manager.getSubscriberId(),
+                        0,
+                        System.currentTimeMillis(),
+                        uid);
+                long txBytes = 0L;
+                NetworkStats.Bucket bucket = new NetworkStats.Bucket();
+                while (networkStats.hasNextBucket()) {
+                    networkStats.getNextBucket(bucket);
+                    txBytes += bucket.getTxBytes();
+                }
+                networkStats.close();
+
+                result.success(txBytes);
+            } catch (Exception e) {
+                result.error("1", "Error getting getPackageTxBytesMobile", "");
             }
             break;
         }

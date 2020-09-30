@@ -23,17 +23,25 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> initPlatformState() async {
+    NetworkStatsPlugin.grantUsagePermission();
     int allRxBytesWifi;
     int allTxBytesWifi;
     int packageRxBytesWifi;
     int packageTxBytesWifi;
     int allRxBytesMobile;
+    int allTxBytesMobile;
+    int packageRxBytesMobile;
+    int packageTxBytesMobile;
 
     try {
       allRxBytesWifi = await NetworkStatsPlugin.getAllRxBytesWifi;
       allTxBytesWifi = await NetworkStatsPlugin.getAllTxBytesWifi;
       packageRxBytesWifi = await NetworkStatsPlugin.getPackageRxBytesWifi;
       packageTxBytesWifi = await NetworkStatsPlugin.getPackageTxBytesWifi;
+      allRxBytesMobile = await NetworkStatsPlugin.getAllRxBytesMobile;
+      allTxBytesMobile = await NetworkStatsPlugin.getAllTxBytesMobile;
+      packageRxBytesMobile = await NetworkStatsPlugin.getPackageRxBytesMobile;
+      packageTxBytesMobile = await NetworkStatsPlugin.getPackageTxBytesMobile;
     } on PlatformException catch (e) {
       print(e.message);
     }
@@ -41,8 +49,14 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
-      _networkStats =
-          'Your allRxBytesWifi: $allRxBytesWifi\nYour allTxBytesWifi: $allTxBytesWifi\nYour packageRxBytesWifi: $packageRxBytesWifi\nYour packageTxBytesWifi: $packageTxBytesWifi';
+      _networkStats = 'Your allRxBytesWifi: $allRxBytesWifi';
+      _networkStats += '\nYour allTxBytesWifi: $allTxBytesWifi';
+      _networkStats += '\nYour packageRxBytesWifi: $packageRxBytesWifi';
+      _networkStats += '\nYour packageTxBytesWifi: $packageTxBytesWifi';
+      _networkStats += '\nYour allRxBytesMobile: $allRxBytesMobile';
+      _networkStats += '\nYour allTxBytesMobile: $allTxBytesMobile';
+      _networkStats += '\nYour packageRxBytesMobile: $packageRxBytesMobile';
+      _networkStats += '\nYour packageTxBytesMobile: $packageTxBytesMobile';
     });
   }
 
